@@ -1,0 +1,119 @@
+---
+title: "SVM and Gradient boosting"
+author: "Инюцина Виктория, Руднев Владислав"
+date: "4/18/2020"
+output: html_document
+---
+
+```{r, message=FALSE}
+library(e1071) # library for svm model
+library(tidyverse)
+#install.packages("e1071")
+```
+
+```{r}
+data(iris)
+attach(iris)
+```
+
+```{r}
+head(iris)
+```
+
+```{r}
+plot(iris)
+```
+
+```{r}
+plot(iris$Sepal.Length, 
+     iris$Sepal.Width, 
+     col=iris$Species)
+```
+
+```{r}
+plot(iris$Petal.Length, 
+     iris$Petal.Width, 
+     col=iris$Species)
+```
+
+```{r}
+index <- 1:nrow(iris)
+testindex <- sample(index, trunc(length(index)/3))
+
+traincols <- c("Petal.Length", "Petal.Width", "Species")
+testcols <- c("Petal.Length", "Petal.Width")
+
+testset <- iris[testindex, testcols]
+testtarget <- iris[testindex, "Species"]
+trainset <- iris[-testindex, traincols]
+```
+
+```{r}
+trainset %>% head()
+```
+
+```{r}
+#tuned <- tune(svm, Species ~ ., 
+#              data = trainset,
+#              decision.values =TRUE,
+#              scaled =TRUE,
+#             ranges = list(cost=2^(-3:2),
+#                            gamma=2^(-25:1),
+#                            coef0=1^(-15:5),
+#                            kernel=c("linear",
+#                                       "polynomial",
+#                                       "radial basis",
+#                                       "sigmoid")),
+#             tunecontrol = tune.control(nrepeat = 5, 
+#                                        sampling = "cross", 
+#                                         cross = 5))
+```
+
+```{r}
+tune.out <- tune(svm, Species ~ .,
+                 data = trainset, 
+                 decision.values =TRUE,
+                 scaled =TRUE,
+                 ranges=list(cost=2^(-3:2),
+                             coef0=1^(-15:5)),
+                 tunecontrol = tune.control(nrepeat = 5, 
+                                            sampling = "cross", 
+                                            cross = 5))
+```
+
+```{r}
+tune.out$best.parameters
+```
+
+```{r}
+# svm model
+svm.model <- svm(Species ~ ., data = trainset, kernel = "linear", cost = .125, coef0 = 1)
+svm.pred <- predict(svm.model, testset)
+```
+
+```{r}
+summary(svm.model)
+```
+
+```{r}
+plot(svm.model, data = trainset)
+```
+
+```{r}
+plot(svm.pred)
+```
+
+```{r}
+cat("accuracy of the model: ", mean(svm.pred == testtarget))
+```
+
+```{r}
+# confusion matrix
+table(pred = svm.pred, true = testtarget)
+```
+
+```{r}
+# for model with more than 2 parameters
+#plot(svm.model, data = trainset, Petal.Width ~ Petal.Length,
+#     slice = list(Sepal.Width = 3, Sepal.Length = 5))
+```
